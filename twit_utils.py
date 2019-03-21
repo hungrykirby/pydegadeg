@@ -3,8 +3,11 @@
 import json
 from requests_oauthlib import OAuth1Session
 import os
+import re
 from os.path import join, dirname
 from dotenv import load_dotenv
+import emoji
+
 
 import sys
 print(sys.getdefaultencoding())
@@ -40,8 +43,8 @@ class Twitter:
     def get_screen_name(self):
         pass
 
-    def reply_result(self, user_id, screen_name, tweet_id):
-        tweet = "@"+screen_name+" "+"Reply Thanks you"
+    def reply_result(self, user_id, screen_name, tweet_id, text):
+        tweet = "@"+screen_name+" "+ self.__shape_tweet(text)
         url = "https://api.twitter.com/1.1/statuses/update.json"
         params = {
             "in_reply_to_status_id": tweet_id,
@@ -72,7 +75,7 @@ class Twitter:
                                     tweet_id = tweet["id_str"]
                                     print ('----\n'+Name+"(@"+SC_N+"):"+'\n'+Text)
 
-                                    self.reply_result(user_id, SC_N, tweet_id)
+                                    self.reply_result(user_id, SC_N, tweet_id, Text)
 
                                     continue
                                 else:
@@ -93,3 +96,38 @@ class Twitter:
             except:
                 print("except Error:", sys.exc_info())
                 pass
+
+    def __shape_tweet(self, tweet):
+        shaped_tweet = tweet
+
+        #URLを除去
+        s = re.sub(r"(\s*https?|ftp)(:\/\/[-_\.!~*\'()a-zA-Z0-9;\/?:\@&=\+\$,%#]+)", "" ,shaped_tweet)
+        
+        #ハッシュタグを除去
+        s = re.sub(r"(\s*#\S+\s*)", "", s)
+
+        #リプライを除去
+        s = re.sub(r"(\s*@\S+\s*)", "", s)
+
+        #「診断して」を除去
+        s = re.sub(r"診断して", "", s)
+
+        #タブ、インデント、改行を除去
+        s = re.sub(r"\s+", " ", s)
+
+        #数字、英語を除去
+        s = re.sub(r"[a-zA-Z0-9]+", "", s)
+
+        #全角数字を除去
+        s = re.sub(r"[０-９]+", "", s)
+
+        s = self.__remove_emoji(s)
+
+        if(s == ''):
+            s = 'ニュートラル'
+
+        return s
+
+    
+    def __remove_emoji(self, src_str):
+        return ''.join(c for c in src_str if c not in emoji.UNICODE_EMOJI)
