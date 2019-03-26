@@ -19,17 +19,16 @@ dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 
 class Twitter:
-    CONSUMER_KEY = os.environ.get("CONSUMER_KEY")
-    CONSUMER_SECRET = os.environ.get("CONSUMER_SECRET")
-    ACCESS_TOKEN = os.environ.get("ACCESS_TOKEN")
-    ACCESS_TOKEN_SECRET = os.environ.get("ACCESS_TOKEN_SECRET")
-
     t = None
     twitter = None
     pnja_dic = None
 
     def __init__(self):
         self.t = Tokenizer()
+        CONSUMER_KEY = os.environ.get("CONSUMER_KEY")
+        CONSUMER_SECRET = os.environ.get("CONSUMER_SECRET")
+        ACCESS_TOKEN = os.environ.get("ACCESS_TOKEN")
+        ACCESS_TOKEN_SECRET = os.environ.get("ACCESS_TOKEN_SECRET")
         self.twitter = OAuth1Session(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
         self.pnja_dic = self.__make_dict()
 
@@ -53,8 +52,8 @@ class Twitter:
         pass
 
     def reply_result(self, user_id, screen_name, tweet_id, text):
-        point = self.__get_negaposi_point(user_id)
-        tweet = "@"+screen_name + " " + "あなたの最近のポジティブ度は" + point + "点(100点~-100点)だよ。また診断してね！" 
+        point = self.__return_tweets_points(user_id)
+        tweet = "@"+screen_name + " " + "あなたの最近のポジティブ度は" + str(point) + "点(100点~-100点)だよ。また診断してね！" 
         url = "https://api.twitter.com/1.1/statuses/update.json"
         params = {
             "in_reply_to_status_id": tweet_id,
@@ -115,38 +114,65 @@ class Twitter:
         return dict(zip(word, score))
 
     def __calc_score(self, point):
-        result = 0
-        indexes = [0, -0.927, 24.59, -46.7, -11.75, 86.67, -38.1, -36.8, 24]
-        for i in len(indexes):
-            result += indexes[i]*(point ** i)
+        result = 0.0
+        #indexes = [0.0, -0.927, 24.59, -46.7, -11.75, 86.67, -38.1, -36.8, 24.0]
+        #print(len(indexes))
+        indexes = [0.0, 1.0]
+        for i in range(len(indexes)):
+            #print(i)
+            #print(indexes[i])
+            #print(point ** i)
+            result = result + indexes[i]*pow(point, i)
         
-        result = result*200.0 - 100
+        result = result*200.0 - 100.0
+        print('生の結果:', result)
         if result > 100:
             result = 100
         elif result < -100:
-            result -100
+            result = -100
         return result
 
     def __get_negaposi_point(self, text):
-        point = 0
+        point = 0.0
+        texts_mum = 0
         for token in self.t.tokenize(text):
-            #print(token)
-            if token in self.pnja_dic:
-                print(token, ':', self.__calc_score(self.pnja_dic[token]))
-                point = point + self.__calc_score(self.pnja_dic[token])
-        return point
+            print(token.base_form, token.base_form in self.pnja_dic)
+            if token.base_form in self.pnja_dic:
+                print('言葉:', token.base_form)
+                print('Row:', self.pnja_dic[str(token.base_form)])
+                print('Calc', self.__calc_score(self.pnja_dic[str(token.base_form)]))
+                texts_mum = texts_mum + 1
+                point = point + self.__calc_score(self.pnja_dic[str(token.base_form)])
+        if texts_mum == 0:
+            return 0.0
+        else:
+            return point/texts_mum
 
     def __return_tweets_points(self, user_id):
         point = 0
+        analysed_tweets_num = 0
         url = 'https://api.twitter.com/1.1/statuses/user_timeline.json'
         params = {
             "count":26,
-            "user_id";user_id
+            "user_id":user_id
         }
-        tweets = self.twitter.get(url, params=params)
-        for tweet in tweets:
-            point = point + self.__get_negaposi_point(self.__shape_tweet(tweet))
-        return point
+        req = self.twitter.get(url, params=params)
+
+        if req.status_code == 200:
+            tweets = json.loads(req.text)
+            for tweet in tweets:
+                #print(tweet)
+                if 'retweeted_status' in tweet:
+                    pass
+                else:
+                    analysed_tweets_num = analysed_tweets_num + 1
+                    point = point + self.__get_negaposi_point(self.__shape_tweet(tweet['text']))
+        else:
+            print("ERROR: %d" % req.status_code)
+        if analysed_tweets_num == 0:
+            return 0.0
+        else:
+            return point/analysed_tweets_num
 
     def __shape_tweet(self, tweet):
         shaped_tweet = tweet

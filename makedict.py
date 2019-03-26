@@ -7,5 +7,6 @@ score = pn_ja['Score']
 
 pnja_dic = dict(zip(word, score))
 
-print(pnja_dic['すもも'])
-
+#print(pnja_dic['すもも'])
+print('すもも' in pnja_dic)
+print('春' in pnja_dic)
