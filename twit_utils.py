@@ -115,16 +115,17 @@ class Twitter:
 
     def __calc_score(self, point):
         result = 0.0
-        #indexes = [0.0, -0.927, 24.59, -46.7, -11.75, 86.67, -38.1, -36.8, 24.0]
-        #print(len(indexes))
-        indexes = [0.0, 1.0]
+        # indexes = [0.0, 1.0]
+        indexes = [20044139.298554, -189551108.145964, 803362654.943301, -1982808107.31878, 3050063580.22546, -2728104117.12756]
+        indexes += [579936832.623438, 2114008087.76503, -3560617779.54537]
+        indexes += [3237478289.2799, -2010218276.42928, 905090361.646448]
+        indexes += [-300793690.048171, 73743418.9425873, -13169138.1692766]
+        indexes += [1672289.44261381, -145315.779364461, 8142.56639828198]
+        indexes += [-267.7386545306, 4.56874684784594, -0.0000725273042917251]
         for i in range(len(indexes)):
-            #print(i)
-            #print(indexes[i])
-            #print(point ** i)
-            result = result + indexes[i]*pow(point, i)
+            result = result + indexes[i]*pow(point, len(indexes) - i - 1)
         
-        result = result*200.0 - 100.0
+        result = result * 200.0 - 100.0
         print('生の結果:', result)
         if result > 100:
             result = 100
